@@ -82,6 +82,16 @@ def build_application_frame(data: bytes) -> bytes:
     return _pad_zero(bytes(frame))
 
 
+def build_get_frame(data: bytes) -> bytes:
+    """Build the zero-checksum frame used by AUX GET requests."""
+    if not data or len(data) > 0xFF:
+        raise PacketError("GET data has an invalid length")
+    frame = bytearray((len(data), 0))
+    frame.extend(data)
+    frame.extend(b"\0\0")
+    return _pad_zero(bytes(frame))
+
+
 def parse_application_frame(frame: bytes) -> bytes:
     """Validate and extract data from an application frame."""
     validate_application_frame(frame)

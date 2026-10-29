@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.const import Platform
 
 DOMAIN = "broadlink_ac"
-PLATFORMS = [Platform.CLIMATE, Platform.SWITCH, Platform.SENSOR]
+PLATFORMS = [Platform.CLIMATE, Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR]
 
 CONF_HOST = "host"
 CONF_MAC = "mac"
@@ -13,6 +13,9 @@ CONF_PORT = "port"
 CONF_NAME = "name"
 CONF_POLL_INTERVAL = "poll_interval"
 CONF_INVERT_DISPLAY = "invert_display"
+CONF_ENABLED_SWITCHES = "enabled_switches"
+
+SWITCH_KEYS = ("display", "health", "clean", "mildew")
 
 DEFAULT_PORT = 80
 DEFAULT_POLL_INTERVAL = 10

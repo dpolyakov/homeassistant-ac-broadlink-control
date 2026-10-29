@@ -110,7 +110,7 @@ Packet golden tests, captured protocol fixtures, static checks, and live hardwar
 - Vertical swing is exposed through the standard climate swing property. Horizontal swing is exposed through Home Assistant's independent horizontal swing property. Both are carried through full state reads and writes.
 - The climate entity does not expose `hvac_action` because the protocol does not report compressor action.
 - Current temperature comes only from the ambient command. A missing ambient sensor produces an unknown current temperature while leaving the device available.
-- Four switch entities are created for every accepted device: display, health, clean, and mildew. They use the same coordinator state and read-modify-write queue as the climate entity.
+- Display, health, clean, and mildew switches are created only when selected manually from the device manual. New entries select none by default; existing entries retain all four until configured. Selected switches use the same coordinator state and read-modify-write queue as the climate entity.
 - Two diagnostic sensor entities expose the last successful packet time and error count.
 - Unknown mode, fan, or swing codes do not silently map to `auto` or `off`. The last confirmed entity value is retained, a warning is logged, and the device remains available unless the packet itself is invalid.
 - Raw packet hex is logged at DEBUG for protocol diagnosis. Session keys never appear in logs, diagnostics, or fixtures. Exported diagnostics contain redacted identifying data and safe counters/state only; raw packet dumps are not persisted automatically.

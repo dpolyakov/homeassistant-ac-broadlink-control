@@ -12,6 +12,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
 
 from .const import (
+    CONF_ENABLED_SWITCHES,
     CONF_INVERT_DISPLAY,
     CONF_MAC,
     CONF_POLL_INTERVAL,
@@ -20,6 +21,7 @@ from .const import (
     DOMAIN,
     MAX_POLL_INTERVAL,
     MIN_POLL_INTERVAL,
+    SWITCH_KEYS,
 )
 from .protocol.device import (
     AcDevice,
@@ -59,7 +61,7 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if result is None:
                 return self.async_create_entry(
                     title=user_input.get(CONF_NAME) or user_input[CONF_MAC],
-                    data=user_input,
+                    data={**user_input, CONF_ENABLED_SWITCHES: []},
                 )
             errors["base"] = result
         schema = vol.Schema(
@@ -86,6 +88,7 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_MAC: selected.mac,
                 CONF_PORT: DEFAULT_PORT,
                 CONF_NAME: user_input.get(CONF_NAME) or selected.name,
+                CONF_ENABLED_SWITCHES: [],
             }
             error = await self._try_device(data)
             if error is None:
@@ -147,19 +150,27 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Return the options flow."""
-        return BroadlinkAcOptionsFlow(config_entry)
+        return BroadlinkAcOptionsFlow()
 
 
-class BroadlinkAcOptionsFlow(config_entries.OptionsFlow):
+class BroadlinkAcOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle options for a configured device."""
 
-    def __init__(self, config_entry) -> None:
-        self.config_entry = config_entry
-
     async def async_step_init(self, user_input=None):
-        """Edit name, poll interval, and display inversion."""
+        """Edit device options and manually selected switches."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            feature_fields = {f"feature_{key}" for key in SWITCH_KEYS}
+            options = {key: value for key, value in user_input.items() if key not in feature_fields}
+            options[CONF_ENABLED_SWITCHES] = [
+                key for key in SWITCH_KEYS if user_input.get(f"feature_{key}", False)
+            ]
+            return self.async_create_entry(title="", data=options)
+        enabled = set(
+            self.config_entry.options.get(
+                CONF_ENABLED_SWITCHES,
+                self.config_entry.data.get(CONF_ENABLED_SWITCHES, SWITCH_KEYS),
+            )
+        )
         schema = vol.Schema(
             {
                 vol.Optional(CONF_NAME, default=self.config_entry.options.get(CONF_NAME, self.config_entry.data.get(CONF_NAME, ""))): str,
@@ -168,6 +179,10 @@ class BroadlinkAcOptionsFlow(config_entries.OptionsFlow):
                     default=self.config_entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=MIN_POLL_INTERVAL, max=MAX_POLL_INTERVAL)),
                 vol.Required(CONF_INVERT_DISPLAY, default=self.config_entry.options.get(CONF_INVERT_DISPLAY, False)): bool,
+                **{
+                    vol.Optional(f"feature_{key}", default=key in enabled): bool
+                    for key in SWITCH_KEYS
+                },
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

@@ -45,7 +45,11 @@
         "data": {
           "name": "Name",
           "poll_interval": "Poll interval",
-          "invert_display": "Invert display logic"
+          "invert_display": "Invert display logic",
+          "feature_display": "Display switch (if listed in the device manual)",
+          "feature_health": "Health switch (if listed in the device manual)",
+          "feature_clean": "iCLEAN switch (if listed in the device manual)",
+          "feature_mildew": "Mildew protection switch (if listed in the device manual)"
         }
       }
     }

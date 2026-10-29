@@ -7,7 +7,13 @@ Status labels used here:
 - **inferred** — implemented from a reference implementation but not independently captured;
 - **experimental** — kept because a reference exposes it, but not guaranteed by every model.
 
-This repository currently contains no captured real response fixtures. Request bytes and formulas below are **confirmed by the written specification**; response behavior remains to be verified on hardware.
+The repository still contains no captured real response fixtures. One physical AUX / AC Freedom device has been live-verified for authentication and state GET. SET, ambient GET, and the full entity acceptance checklist remain unverified on hardware.
+
+## Live validation
+
+On 2026-10-29, a read-only test against one device completed authentication and returned state through the corrected GET frame. The previous GET frame beginning with `0E 00` received device error `0xFFFB`; the working frame begins with `0C 00`. The live check returned a parsed target temperature of 24 °C, power off, mode code 1, fan code 5, and both swing codes 0. No SET command was sent.
+
+On 2026-10-29, a captured live i-feel attempt on the same device sent a full SET with `power=True` and `data[15]=0x88` (`mode=4`, i-feel bit set). The device returned a valid short SET response, but the following state GET returned `data[15]=0x80` (`ifeel=False`). The same result occurred on repeated attempts. Evidence: captured user-provided HA log; no raw fixture was added.
 
 ## Transport
 
@@ -111,7 +117,7 @@ AES uses the fixed IV above and either the initial key or persisted session key.
 
 ## Application frame
 
-The plaintext application frame is:
+The plaintext SET/response application frame is:
 
 ```text
 [len(data) + 2] [00] [data...] [checksum_hi] [checksum_lo] [zero padding]
@@ -119,10 +125,16 @@ The plaintext application frame is:
 
 The application checksum is a big-endian ones-complement checksum over 16-bit big-endian words. An odd final byte is paired with zero before summing. The folded sum is inverted.
 
-The documented GET data is 12 bytes and produces a 16-byte frame:
+AUX GET requests use a different zero-checksum frame:
 
 ```text
-BB 00 06 80 00 00 02 00 11 01 2B 7E
+[len(data)] [00] [data...] [00] [00] [zero padding]
+```
+
+The documented GET data is 12 bytes and produces this 16-byte frame:
+
+```text
+0C 00 BB 00 06 80 00 00 02 00 11 01 2B 7E 00 00
 ```
 
 The documented ambient GET changes byte 8 to `21` and uses:
@@ -150,6 +162,7 @@ After the first two frame bytes are discarded, the fields are:
 | vertical swing | `b[10] & 0b111` |
 | mode | `(b[15] >> 5) & 0b1111` |
 | sleep | `(b[15] >> 2) & 1` |
+| fahrenheit display bit | `(b[15] >> 1) & 1` |
 | display raw bit | `(b[20] >> 4) & 1` |
 | mildew | `(b[20] >> 3) & 1` |
 | health | `(b[18] >> 1) & 1` |
@@ -184,6 +197,8 @@ else:
 
 The Python and Go references disagree about the presence bit and fraction masking. This remains an explicit experimental point for live hardware validation.
 
+The ambient response currently provides one temperature value. The protocol contract does not establish separate built-in and remote-control temperature fields, so the integration exposes this value as the device built-in temperature. An additional i-feel temperature sensor is not created without a confirmed separate field.
+
 ## Full SET
 
 SET always sends all 23 data bytes:
@@ -204,7 +219,7 @@ SET always sends all 23 data bytes:
 12: 0x0F | (0x80 if T has a half degree)
 13: fan_speed << 5
 14: (turbo << 6) | (mute << 7)
-15: (mode << 5) | (sleep << 2)
+15: (mode << 5) | (ifeel << 3) | (sleep << 2) | (fahrenheit << 1)
 16: 00
 17: 00
 18: (power << 5) | (health << 1) | (clean << 2)
@@ -214,14 +229,18 @@ SET always sends all 23 data bytes:
 22: 00
 ```
 
-The accepted target range is 16–32 °C in 0.5 °C increments. The physical display bit is inverted by default: raw zero means display on. The integration option `invert_display` handles models with reverse behavior.
+The accepted target range is 16–32 °C in 0.5 °C increments. **Inferred from a user-reported hardware observation (2026-10-29):** HA ON previously sent raw zero and the physical display turned off. This device therefore appears to use raw one for display on; the integration uses that mapping by default. The `invert_display` option handles models with reverse behavior. No captured display SET/GET fixture is available yet.
 
 ## Lifecycle and acceptance
 
 - Poll state every 10 seconds by default; allow 10–300 seconds in options.
-- Poll ambient every 180 seconds.
+- Poll ambient every 180 seconds and immediately when the i-feel state changes.
 - Mark unavailable after three consecutive failed operations and available after one success.
 - Use a 300 ms command debounce, 500 ms minimum packet spacing, 500 ms post-SET delay, and bounded retry/backoff.
 - Test packet construction and parsing with deterministic golden data.
 - Keep real captured responses separate from synthetic fixtures.
 - Validate on hardware where available: power, supported HVAC/fan modes, temperature increments, both swing axes, switches, ambient, offline, recovery, and rapid command coalescing.
+- The i-feel state bit is parsed at `b[15]` bit 3, but on the tested hardware a SET with that bit set is acknowledged and not retained on readback; write semantics remain unconfirmed. No separate remote-temperature sensor is claimed without a confirmed protocol field.
+- The display-unit bit `FH` is parsed at `b[15]` bit 1 and preserved in unrelated SET commands. Its meaning is inferred from the external AUX protocol description and is not independently captured on this device.
+- i-feel is exposed as a read-only binary sensor. Direct i-feel control is not exposed because the tested hardware acknowledges the SET but does not retain the requested bit; physical-remote changes are observed by polling.
+- The native device countdown timer remains out of scope until its write and readback fields are captured and validated.

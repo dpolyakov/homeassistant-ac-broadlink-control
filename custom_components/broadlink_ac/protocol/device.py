@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 import time
 
 from .discovery import normalize_mac
@@ -13,6 +14,7 @@ from .packet import (
     build_application_frame,
     build_auth_payload,
     build_packet,
+    build_get_frame,
     parse_packet,
     validate_application_frame,
     UnsupportedPacketError,
@@ -72,7 +74,7 @@ class AcDevice:
         self._mac_bytes = bytes.fromhex(self.mac.replace(":", ""))
         self.device_id: bytes | None = None
         self.device_key: bytes | None = None
-        self.sequence = 0
+        self.sequence = secrets.randbelow(0xFFFF)
         self._transport: asyncio.DatagramTransport | None = None
         self._protocol: _DatagramProtocol | None = None
         self._request_lock = asyncio.Lock()
@@ -188,26 +190,58 @@ class AcDevice:
 
     async def read_state(self) -> AcState:
         """Read the main device state."""
-        parsed = await self._session_request(build_application_frame(GET_STATES))
+        parsed = await self._session_request(build_get_frame(GET_STATES))
         try:
             validate_application_frame(parsed.payload)
-            return parse_state_response(parsed.payload)
+            state = parse_state_response(parsed.payload)
+            _LOGGER.debug(
+                "STATE response ifeel=%s fahrenheit=%s power=%s mode=%s "
+                "target_temperature=%s payload=%s",
+                state.ifeel,
+                state.fahrenheit,
+                state.power,
+                state.mode_code,
+                state.target_temperature,
+                parsed.payload.hex(" "),
+            )
+            return state
         except PacketError as err:
             raise ProtocolError(str(err)) from err
 
     async def read_ambient(self) -> float | None:
         """Read the ambient temperature."""
-        parsed = await self._session_request(build_application_frame(GET_AMBIENT))
+        parsed = await self._session_request(build_get_frame(GET_AMBIENT))
         try:
             validate_application_frame(parsed.payload)
-            return parse_ambient_response(parsed.payload)
+            ambient = parse_ambient_response(parsed.payload)
+            _LOGGER.debug(
+                "AMBIENT response temperature=%s payload=%s",
+                ambient,
+                parsed.payload.hex(" "),
+            )
+            return ambient
         except PacketError as err:
             raise ProtocolError(str(err)) from err
 
     async def apply_state(self, state: AcState) -> None:
         """Send a complete device state."""
-        parsed = await self._session_request(build_set_frame(state))
+        frame = build_set_frame(state)
+        _LOGGER.debug(
+            "SET request ifeel=%s fahrenheit=%s power=%s mode=%s target_temperature=%s frame=%s",
+            state.ifeel,
+            state.fahrenheit,
+            state.power,
+            state.mode_code,
+            state.target_temperature,
+            frame.hex(" "),
+        )
+        parsed = await self._session_request(frame)
         try:
             validate_application_frame(parsed.payload)
+            _LOGGER.debug(
+                "SET response ifeel=%s payload=%s",
+                state.ifeel,
+                parsed.payload.hex(" "),
+            )
         except PacketError as err:
             raise ProtocolError(str(err)) from err

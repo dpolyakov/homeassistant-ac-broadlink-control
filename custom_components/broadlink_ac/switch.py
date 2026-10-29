@@ -6,7 +6,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.helpers import entity_registry as er
 
+from .const import CONF_ENABLED_SWITCHES, DOMAIN, SWITCH_KEYS
 from .coordinator import BroadlinkAcCoordinator
 
 
@@ -15,14 +17,27 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create all protocol-backed switches."""
+    """Create only the switches selected for this device."""
     coordinator: BroadlinkAcCoordinator = entry.runtime_data
+    enabled = set(
+        entry.options.get(CONF_ENABLED_SWITCHES, entry.data.get(CONF_ENABLED_SWITCHES, SWITCH_KEYS))
+    )
+    registry = er.async_get(hass)
+    for key in SWITCH_KEYS:
+        if key not in enabled:
+            entity_id = registry.async_get_entity_id("switch", DOMAIN, f"{coordinator.device.mac}_{key}")
+            if entity_id is not None:
+                registry.async_remove(entity_id)
     async_add_entities(
         [
-            BroadlinkAcSwitch(coordinator, "display", "Display"),
-            BroadlinkAcSwitch(coordinator, "health", "Health"),
-            BroadlinkAcSwitch(coordinator, "clean", "Clean"),
-            BroadlinkAcSwitch(coordinator, "mildew", "Mildew protection"),
+            BroadlinkAcSwitch(coordinator, key, name)
+            for key, name in (
+                ("display", "Display"),
+                ("health", "Health"),
+                ("clean", "Clean"),
+                ("mildew", "Mildew protection"),
+            )
+            if key in enabled
         ]
     )
 
@@ -59,7 +74,7 @@ class BroadlinkAcSwitch(SwitchEntity):
         if state is None:
             return None
         if self.key == "display":
-            value = not state.display_raw
+            value = state.display_raw
             return not value if self.coordinator.invert_display else value
         return bool(getattr(state, self.key))
 
@@ -71,9 +86,9 @@ class BroadlinkAcSwitch(SwitchEntity):
 
     async def _set(self, enabled: bool) -> None:
         if self.key == "display":
-            display_raw = not enabled
+            display_raw = enabled
             if self.coordinator.invert_display:
-                display_raw = enabled
+                display_raw = not enabled
             await self.coordinator.async_request_state_change(display_raw=display_raw)
         else:
             await self.coordinator.async_request_state_change(**{self.key: enabled})

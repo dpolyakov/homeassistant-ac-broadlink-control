@@ -6,10 +6,10 @@ from custom_components.broadlink_ac.protocol.packet import (
     broadlink_checksum,
     build_application_frame,
     build_discovery_packet,
+    build_get_frame,
     build_packet,
     decrypt_payload,
     encrypt_payload,
-    ones_complement_checksum,
     parse_application_frame,
     parse_packet,
 )
@@ -30,11 +30,9 @@ SET_DATA = bytes.fromhex(
 
 class ProtocolTests(unittest.TestCase):
     def test_known_get_application_frame_has_zero_checksum(self) -> None:
-        frame = build_application_frame(GET_DATA)
+        frame = build_get_frame(GET_DATA)
 
-        self.assertEqual(frame, bytes.fromhex("0E 00 BB 00 06 80 00 00 02 00 11 01 2B 7E 00 00"))
-        self.assertEqual(ones_complement_checksum(GET_DATA), 0)
-        self.assertEqual(parse_application_frame(frame), GET_DATA)
+        self.assertEqual(frame, bytes.fromhex("0C 00 BB 00 06 80 00 00 02 00 11 01 2B 7E 00 00"))
 
     def test_set_application_frame_is_padded_to_32_bytes(self) -> None:
         frame = build_application_frame(SET_DATA)
@@ -50,7 +48,7 @@ class ProtocolTests(unittest.TestCase):
     def test_packet_contains_protocol_header_and_checksums(self) -> None:
         mac = bytes.fromhex("34 EA 34 5B 0F D4")
         device_id = bytes.fromhex("01 02 03 04")
-        frame = build_application_frame(GET_DATA)
+        frame = build_get_frame(GET_DATA)
         packet = build_packet(0x6A, 0x1234, mac, device_id, frame, INITIAL_KEY)
 
         self.assertEqual(packet[:8], bytes.fromhex("5A A5 AA 55 5A A5 AA 55"))
@@ -70,7 +68,7 @@ class ProtocolTests(unittest.TestCase):
         parsed = parse_packet(packet, INITIAL_KEY)
         self.assertEqual(parsed.command, 0x6A)
         self.assertEqual(parsed.sequence, 0x1234)
-        self.assertEqual(parse_application_frame(parsed.payload), GET_DATA)
+        self.assertEqual(parsed.payload, frame)
 
     def test_payload_round_trip_uses_aes_cbc_without_pkcs7(self) -> None:
         payload = bytes(range(32))
@@ -87,7 +85,7 @@ class ProtocolTests(unittest.TestCase):
         data[12] = 0x80
         data[13] = 5 << 5
         data[14] = (1 << 6) | (1 << 7)
-        data[15] = (4 << 5) | (1 << 2) | (1 << 3)
+        data[15] = (4 << 5) | (1 << 3) | (1 << 2) | (1 << 1)
         data[18] = (1 << 5) | (1 << 1) | (1 << 2)
         data[20] = (1 << 4) | (1 << 3)
         response_body = bytearray(23)
@@ -107,6 +105,8 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(state.horizontal_swing_code, 0)
         self.assertTrue(state.health)
         self.assertTrue(state.clean)
+        self.assertTrue(state.ifeel)
+        self.assertTrue(state.fahrenheit)
         self.assertTrue(state.display_raw)
         self.assertTrue(state.mildew)
 
@@ -147,6 +147,8 @@ class ProtocolTests(unittest.TestCase):
             mildew=True,
             health=True,
             clean=True,
+            ifeel=True,
+            fahrenheit=True,
             turbo=False,
             mute=False,
         )
@@ -160,7 +162,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(data[12], 0x8F)
         self.assertEqual(data[13], 2 << 5)
         self.assertEqual(data[14], 0)
-        self.assertEqual(data[15], (1 << 5) | (1 << 2))
+        self.assertEqual(data[15], (1 << 5) | (1 << 3) | (1 << 2) | (1 << 1))
         self.assertEqual(data[18], (1 << 5) | (1 << 1) | (1 << 2))
         self.assertEqual(data[20], (1 << 4) | (1 << 3))
 

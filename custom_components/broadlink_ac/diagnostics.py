@@ -27,5 +27,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "vertical_swing_code": state.vertical_swing_code,
             "horizontal_swing_code": state.horizontal_swing_code,
             "ambient_temperature": state.ambient_temperature,
+            "ifeel": state.ifeel,
+            "fahrenheit": state.fahrenheit,
         },
     }

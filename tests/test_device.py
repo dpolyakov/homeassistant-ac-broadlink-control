@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from unittest.mock import patch
 
 from custom_components.broadlink_ac.protocol.device import AcDevice
 from custom_components.broadlink_ac.protocol.packet import (
@@ -52,6 +53,15 @@ class FakeDeviceProtocol(asyncio.DatagramProtocol):
 
 
 class DeviceTests(unittest.IsolatedAsyncioTestCase):
+    def test_new_device_uses_random_initial_sequence(self) -> None:
+        with patch(
+            "custom_components.broadlink_ac.protocol.device.secrets.randbelow",
+            return_value=0x1234,
+        ):
+            device = AcDevice("127.0.0.1", MAC)
+
+        self.assertEqual(device.sequence, 0x1234)
+
     async def test_authentication_and_state_read_use_one_local_udp_client(self) -> None:
         loop = asyncio.get_running_loop()
         server = FakeDeviceProtocol()
@@ -67,7 +77,8 @@ class DeviceTests(unittest.IsolatedAsyncioTestCase):
 
         try:
             session = await device.authenticate()
-            state = await device.read_state()
+            with self.assertLogs("custom_components.broadlink_ac.protocol.device", level="DEBUG") as logs:
+                state = await device.read_state()
         finally:
             await device.close()
             transport.close()
@@ -78,3 +89,4 @@ class DeviceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(state.power)
         self.assertEqual(state.vertical_swing_code, 6)
         self.assertEqual(server.requests, [0x65, 0x6A])
+        self.assertTrue(any("STATE response" in message for message in logs.output))

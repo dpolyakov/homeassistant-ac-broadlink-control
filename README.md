@@ -1,85 +1,79 @@
-# Broadlink AUX Air Conditioner for Home Assistant
+# Broadlink AUX Air Conditioner
 
-This custom integration controls compatible AUX / AC Freedom air conditioners locally over UDP. It does not require MQTT, a bridge daemon, or an AUX cloud account.
+[English](README.md) | [Русский](README.ru.md)
 
-## Supported devices
+A custom Home Assistant integration for controlling compatible AUX air conditioners over the local network. It communicates directly with the air conditioner’s Broadlink-compatible Wi-Fi module over IPv4 UDP. The integration does not use MQTT, an external bridge, or AUX Cloud.
 
-The integration accepts devices reporting Broadlink `devtype == 0x4E2a` (20010). Compatibility is device-firmware dependent even when the same device type is reported.
+## Compatibility
 
-The implementation was designed for devices such as AUX, Dunham-Bush, Rcool, Akai, Rinnai, Tornado X, and Ballu units using an AC Freedom Wi-Fi module. This list is not a live compatibility guarantee.
+The integration supports devices that report Broadlink device type `0x4E2a` (`20010`). Compatibility depends on the device model and firmware, even when the device type matches. The device must be reachable from Home Assistant over local IPv4 UDP.
+
+## Features
+
+- A native climate entity with `off`, `auto`, `cool`, `dry`, `heat`, and `fan_only` modes.
+- Fan modes `auto`, `low`, `medium`, `high`, `turbo`, and `mute`.
+- Independent vertical and horizontal swing controls.
+- Target temperature from 16 to 32 °C in 0.5 °C increments. The climate entity follows Home Assistant’s configured temperature unit.
+- The device’s ambient-temperature reading on the climate entity and as a `Built-in temperature` sensor. The value is unavailable when the device does not report it.
+- A read-only `I-feel` binary sensor.
+- Optional switches for `Display`, `Health`, `Clean`, and `Mildew protection`.
+- Diagnostic sensors for the last successful packet time and the error count.
+
+The local protocol provides one ambient-temperature value. The climate entity and `Built-in temperature` sensor use that same reading; there is no separate remote-control temperature sensor. The `I-feel` sensor is read-only and reflects the device’s state.
 
 ## Installation
 
-Install the `custom_components/broadlink_ac` directory through HACS as a custom repository or copy it into the Home Assistant configuration directory. Restart Home Assistant, then add **Broadlink AC** from Settings → Devices & services.
+### HACS
 
-The manifest documentation URL must point to the repository hosting this integration before publishing it as a public HACS repository.
+HACS requires an `issue_tracker` key in the integration’s `manifest.json` ([HACS integration requirements](https://hacs.xyz/docs/publish/integration/)). This repository’s manifest does not contain that key yet; add it before registering the repository in HACS. Until then, use the manual method below.
 
-## Configuration
+Once the repository meets HACS requirements:
 
-The config flow offers:
+1. In HACS, open the menu in the top-right corner and select **Custom repositories**.
+2. Add [`https://github.com/dpolyakov/homeassistant-ac-broadlink-control`](https://github.com/dpolyakov/homeassistant-ac-broadlink-control) and choose **Integration** as the category.
+3. Add and install **Broadlink AUX Air Conditioner**, then restart Home Assistant.
 
-- manual IPv4, MAC address, optional UDP port, and optional name;
-- an explicit three-second UDP discovery scan.
+See the [HACS custom repository guide](https://hacs.xyz/docs/faq/custom_repositories/) for details.
 
-Manual configuration remains available when broadcast is blocked. The default device port is 80. A MAC address identifies the device; changing its DHCP address does not create a duplicate entry.
+### Manual installation
 
-Options are:
+1. Copy `custom_components/broadlink_ac` from this repository into `<Home Assistant config>/custom_components/broadlink_ac`.
+2. Restart Home Assistant.
 
-- display inversion;
-- poll interval from 10 to 300 seconds;
-- device name.
+## Add the integration
 
-Temperature values use Home Assistant's global unit system. The wire protocol always uses Celsius and half-degree increments.
+In Home Assistant, open **Settings → Devices & services → Add integration** and search for **Broadlink AUX Air Conditioner**. The setup flow offers two methods:
 
-## Entities
+- **Find devices** sends a local UDP broadcast scan for three seconds. Discovery requires the network to pass the broadcast packets.
+- **Enter device manually** asks for the device’s IPv4 address and MAC address. The UDP port defaults to `80`; a device name is optional.
 
-Each configured device creates one climate entity with:
+If discovery finds no device, use manual setup. The selected device must still be reachable over the local network.
 
-- HVAC modes: off, auto, cool, dry, heat, fan-only;
-- fan modes: auto, low, medium, high, turbo, mute;
-- independent vertical and horizontal swing modes;
-- target temperature from 16 to 32 °C in 0.5 °C steps;
-- current temperature from the device ambient sensor when present.
+## Options
 
-It also creates switches for display, health, clean, and mildew protection, plus diagnostic sensors for the last successful packet and error count.
+After setup, the integration’s options let you change the device name, set the polling interval from 10 to 300 seconds (10 seconds by default), invert display-switch behavior, and select optional switches.
 
-The device requires complete state writes. A control action is debounced for 300 ms, serialised behind the per-device UDP queue, followed by a 500 ms settling pause and a confirmation GET.
+Optional switches are disabled for a newly added device. Enable only the functions listed in the device’s manual. Selecting a switch does not verify that the physical device supports it.
 
 ## Troubleshooting
 
-### Authentication or checksum errors
+### No devices found
 
-The most common cause is a lost pairing between the Wi-Fi module and AC Freedom. Stop every other controller for this device, unbind or remove the device in AC Freedom, reset the Wi-Fi module, pair it again, and retry the integration.
+The access point or network segmentation may block UDP broadcast. Enter the device’s IPv4 address and MAC address manually.
 
-The integration retries one re-authentication for an authentication or protocol error. It does not delete persisted credentials automatically.
+### Authentication failed
 
-### The device is not discovered
-
-Broadcast may be blocked by the access point or VLAN. Use manual setup with the device IPv4 address and MAC address. The device must respond locally; NAT, VPN, and cloud-only connectivity are not supported.
-
-### Two controllers are running
-
-Do not run the old MQTT bridge and this integration against the same air conditioner. Both controllers can authenticate and change the session state, causing intermittent failures.
+Check that the Wi-Fi module is paired in AC Freedom; if authentication still fails, re-pair the module in that app. If another bridge or controller is managing the same air conditioner, stop it before using this integration; multiple controllers can interfere with the device’s session state.
 
 ### A switch or swing position does not work
 
-The protocol exposes fields that are not implemented identically by every firmware version. Check DEBUG logs and the live acceptance checklist. An unsupported physical feature is not evidence that the local transport is broken.
+Feature support depends on the device model and firmware. Check the device manual before enabling optional switches.
 
-## Diagnostics and logging
+## Diagnostics and logs
 
-At DEBUG level the protocol logs raw packet hex to help investigate incompatible firmware. Session keys are never logged. Diagnostics redact host and MAC identity and contain only safe state and counters; raw captures are not persisted automatically.
-
-## Development checks
-
-The independent protocol tests run with Python's standard `unittest` runner:
-
-```sh
-/path/to/python3 -m unittest discover -s tests -v
-/path/to/python3 -m compileall -q custom_components tests
-```
-
-Captured response fixtures are deliberately kept separate from synthetic fixtures. Until real auth, state, and ambient response captures are added, protocol tests verify the written specification and deterministic mocks, not complete hardware compatibility.
+Home Assistant diagnostics redact the device’s host and MAC address and do not include raw packets or session keys. DEBUG logging includes raw UDP packet data; review logs before sharing them.
 
 ## Scope
 
-Version 1 is local-only. MQTT, external daemons, AUX Cloud, IPv6, NAT traversal, VPN transport, and automatic pairing reset are out of scope.
+The integration controls devices locally over IPv4 UDP. MQTT, external bridge software, AUX Cloud, IPv6, NAT traversal, and VPN transport are not supported.
+

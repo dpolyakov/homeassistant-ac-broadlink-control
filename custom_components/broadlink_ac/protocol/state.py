@@ -23,6 +23,7 @@ class AcState:
     health: bool = False
     clean: bool = False
     ifeel: bool = False
+    fahrenheit: bool = False
     turbo: bool = False
     mute: bool = False
     ambient_temperature: float | None = None
@@ -53,6 +54,7 @@ def parse_state_response(response: bytes) -> AcState:
         health=bool((data[18] >> 1) & 1),
         clean=bool((data[18] >> 2) & 1),
         ifeel=bool((data[15] >> 3) & 1),
+        fahrenheit=bool((data[15] >> 1) & 1),
         turbo=bool((data[14] >> 6) & 1),
         mute=bool((data[14] >> 7) & 1),
     )
@@ -85,7 +87,12 @@ def build_set_data(state: AcState) -> bytes:
     data[12] = 0x0F | (0x80 if half_degree else 0)
     data[13] = (fan_speed & 0x07) << 5
     data[14] = (0x40 if state.turbo else 0) | (0x80 if state.mute else 0)
-    data[15] = ((state.mode_code & 0x0F) << 5) | (0x04 if state.sleep else 0)
+    data[15] = (
+        ((state.mode_code & 0x0F) << 5)
+        | (0x08 if state.ifeel else 0)
+        | (0x04 if state.sleep else 0)
+        | (0x02 if state.fahrenheit else 0)
+    )
     data[18] = (0x20 if state.power else 0) | (0x02 if state.health else 0) | (0x04 if state.clean else 0)
     data[20] = (0x10 if state.display_raw else 0) | (0x08 if state.mildew else 0)
     return bytes(data)

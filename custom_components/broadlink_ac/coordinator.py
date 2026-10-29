@@ -129,8 +129,16 @@ class BroadlinkAcCoordinator(DataUpdateCoordinator[AcState]):
         """Poll state and ambient data."""
         async with self._io_lock:
             try:
+                previous = self.data
                 state = await self._with_retries(self.device.read_state)
-                if time.monotonic() - self._last_ambient >= AMBIENT_INTERVAL:
+                ifeel_changed = previous is not None and previous.ifeel != state.ifeel
+                if ifeel_changed:
+                    _LOGGER.info(
+                        "[IFEEL-CAPTURE] polled state changed from %s to %s",
+                        previous.ifeel,
+                        state.ifeel,
+                    )
+                if time.monotonic() - self._last_ambient >= AMBIENT_INTERVAL or ifeel_changed:
                     state = state.with_ambient(await self._with_retries(self.device.read_ambient))
                     self._last_ambient = time.monotonic()
                 self._record_success()
