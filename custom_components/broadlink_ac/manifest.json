@@ -1,0 +1,10 @@
+{
+  "domain": "broadlink_ac",
+  "name": "Broadlink AUX Air Conditioner",
+  "version": "0.1.0",
+  "documentation": "https://github.com/polyakovda/homeassistant-ac-broadlink-control",
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "requirements": []
+}

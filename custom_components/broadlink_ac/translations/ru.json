@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Broadlink AC",
+        "menu_options": {
+          "manual": "Ввести устройство вручную",
+          "discovery": "Найти устройства"
+        }
+      },
+      "manual": {
+        "title": "Настройка Broadlink AC",
+        "data": {
+          "host": "IP-адрес",
+          "mac": "MAC-адрес",
+          "port": "UDP-порт",
+          "name": "Имя"
+        }
+      },
+      "discovery": {
+        "title": "Найденные устройства Broadlink AC",
+        "data": {
+          "device": "Устройство",
+          "name": "Имя"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Не удалось подключиться к устройству.",
+      "auth_failed": "Ошибка аутентификации. Перепривяжите модуль в AC Freedom.",
+      "invalid_response": "Устройство вернуло некорректный ответ.",
+      "unsupported_device": "Этот тип устройства не поддерживается.",
+      "invalid_mac": "Введите корректный шестибайтный MAC-адрес.",
+      "invalid_host": "Введите корректный IPv4-адрес.",
+      "no_devices_found": "Совместимые устройства не найдены. Попробуйте ручную настройку."
+    },
+    "abort": {
+      "already_configured": "Это устройство уже настроено."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Настройки Broadlink AC",
+        "data": {
+          "name": "Имя",
+          "poll_interval": "Интервал опроса",
+          "invert_display": "Инвертировать логику дисплея"
+        }
+      }
+    }
+  }
+}

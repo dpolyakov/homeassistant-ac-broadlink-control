@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Broadlink AC",
+        "menu_options": {
+          "manual": "Enter device manually",
+          "discovery": "Find devices"
+        }
+      },
+      "manual": {
+        "title": "Configure Broadlink AC",
+        "data": {
+          "host": "IP address",
+          "mac": "MAC address",
+          "port": "UDP port",
+          "name": "Name"
+        }
+      },
+      "discovery": {
+        "title": "Discovered Broadlink AC devices",
+        "data": {
+          "device": "Device",
+          "name": "Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the device.",
+      "auth_failed": "Authentication failed. Re-pair the module in AC Freedom.",
+      "invalid_response": "The device returned an invalid response.",
+      "unsupported_device": "This device type is not supported.",
+      "invalid_mac": "Enter a valid six-byte MAC address.",
+      "invalid_host": "Enter a valid IPv4 address.",
+      "no_devices_found": "No compatible devices were found. Try manual setup."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Broadlink AC options",
+        "data": {
+          "name": "Name",
+          "poll_interval": "Poll interval",
+          "invert_display": "Invert display logic"
+        }
+      }
+    }
+  }
+}
