@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 
 from .coordinator import BroadlinkAcCoordinator
@@ -29,7 +30,7 @@ async def async_setup_entry(
     )
 
 
-class BroadlinkAcBuiltInTemperatureSensor(SensorEntity):
+class BroadlinkAcBuiltInTemperatureSensor(CoordinatorEntity[BroadlinkAcCoordinator], SensorEntity):
     """Temperature reported by the device ambient sensor."""
 
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -38,7 +39,7 @@ class BroadlinkAcBuiltInTemperatureSensor(SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: BroadlinkAcCoordinator) -> None:
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_built_in_temperature"
         self._attr_name = "Built-in temperature"
 
@@ -63,12 +64,12 @@ class BroadlinkAcBuiltInTemperatureSensor(SensorEntity):
         )
 
 
-class _DiagnosticSensor(SensorEntity):
+class _DiagnosticSensor(CoordinatorEntity[BroadlinkAcCoordinator], SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: BroadlinkAcCoordinator, key: str, name: str) -> None:
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_{key}"
         self._attr_name = name
 

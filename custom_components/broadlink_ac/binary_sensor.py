@@ -6,6 +6,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import BroadlinkAcCoordinator
 
@@ -19,14 +20,14 @@ async def async_setup_entry(
     async_add_entities([BroadlinkAcIFeelBinarySensor(entry.runtime_data)])
 
 
-class BroadlinkAcIFeelBinarySensor(BinarySensorEntity):
+class BroadlinkAcIFeelBinarySensor(CoordinatorEntity[BroadlinkAcCoordinator], BinarySensorEntity):
     """Whether iFeel is currently enabled on the air conditioner."""
 
     _attr_has_entity_name = True
     _attr_icon = "mdi:remote"
 
     def __init__(self, coordinator: BroadlinkAcCoordinator) -> None:
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_ifeel"
         self._attr_name = "I-feel"
 

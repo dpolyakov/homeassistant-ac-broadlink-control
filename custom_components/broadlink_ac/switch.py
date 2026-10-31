@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_ENABLED_SWITCHES, DOMAIN, SWITCH_KEYS
 from .coordinator import BroadlinkAcCoordinator
@@ -42,13 +43,13 @@ async def async_setup_entry(
     )
 
 
-class BroadlinkAcSwitch(SwitchEntity):
+class BroadlinkAcSwitch(CoordinatorEntity[BroadlinkAcCoordinator], SwitchEntity):
     """One boolean protocol state field."""
 
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: BroadlinkAcCoordinator, key: str, name: str) -> None:
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.key = key
         self._attr_name = name
         self._attr_unique_id = f"{coordinator.device.mac}_{key}"

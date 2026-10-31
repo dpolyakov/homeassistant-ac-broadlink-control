@@ -141,6 +141,8 @@ class BroadlinkAcCoordinator(DataUpdateCoordinator[AcState]):
                 if time.monotonic() - self._last_ambient >= AMBIENT_INTERVAL or ifeel_changed:
                     state = state.with_ambient(await self._with_retries(self.device.read_ambient))
                     self._last_ambient = time.monotonic()
+                elif previous is not None:
+                    state = state.with_ambient(previous.ambient_temperature)
                 self._record_success()
                 return state
             except DeviceError as err:

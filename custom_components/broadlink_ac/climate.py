@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     FAN_MODES,
@@ -35,7 +36,7 @@ async def async_setup_entry(
     async_add_entities([BroadlinkAcClimate(entry.runtime_data)])
 
 
-class BroadlinkAcClimate(ClimateEntity):
+class BroadlinkAcClimate(CoordinatorEntity[BroadlinkAcCoordinator], ClimateEntity):
     """Native climate representation of one device."""
 
     _attr_has_entity_name = True
@@ -52,7 +53,7 @@ class BroadlinkAcClimate(ClimateEntity):
     )
 
     def __init__(self, coordinator: BroadlinkAcCoordinator) -> None:
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_climate"
         self._attr_name = "Climate"
         self._last_hvac_mode = HVACMode.AUTO

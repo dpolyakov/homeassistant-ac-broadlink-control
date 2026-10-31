@@ -13,6 +13,8 @@ The repository still contains no captured real response fixtures. One physical A
 
 On 2026-10-29, a read-only test against one device completed authentication and returned state through the corrected GET frame. The previous GET frame beginning with `0E 00` received device error `0xFFFB`; the working frame begins with `0C 00`. The live check returned a parsed target temperature of 24 °C, power off, mode code 1, fan code 5, and both swing codes 0. No SET command was sent.
 
+Live sample (2026-10-31; no raw packet fixture): a read-only check of the configured device while its state reported power off returned target temperature 25 °C and ambient temperature 23.3 °C. The device answered both state and ambient GET requests while off. This confirms one direct query, not Home Assistant's scheduled polling.
+
 On 2026-10-29, a captured live i-feel attempt on the same device sent a full SET with `power=True` and `data[15]=0x88` (`mode=4`, i-feel bit set). The device returned a valid short SET response, but the following state GET returned `data[15]=0x80` (`ifeel=False`). The same result occurred on repeated attempts. Evidence: captured user-provided HA log; no raw fixture was added.
 
 ## Transport
