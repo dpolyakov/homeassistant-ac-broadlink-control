@@ -25,9 +25,9 @@
 
 ### HACS
 
-Для интеграции в `manifest.json` обязательно поле `issue_tracker` ([требования HACS](https://hacs.xyz/docs/publish/integration/)). Сейчас в файле этого поля нет; добавьте его до регистрации репозитория в HACS. До этого используйте ручную установку.
+В корневом `hacs.json` задано имя интеграции для HACS. В `manifest.json` указано обязательное поле `issue_tracker`, а иконка находится в `custom_components/broadlink_ac/brand/icon.png` ([общие требования HACS](https://hacs.xyz/docs/publish/start/), [требования к интеграциям](https://hacs.xyz/docs/publish/integration/)).
 
-Когда репозиторий будет соответствовать требованиям HACS:
+Чтобы установить интеграцию из этого репозитория через HACS:
 
 1. В HACS откройте меню в правом верхнем углу и выберите **Custom repositories**.
 2. Добавьте [`https://github.com/dpolyakov/homeassistant-ac-broadlink-control`](https://github.com/dpolyakov/homeassistant-ac-broadlink-control) и выберите категорию **Integration**.
@@ -72,6 +72,10 @@
 ## Диагностические данные и логи
 
 В диагностических данных Home Assistant скрывает адрес устройства и MAC-адрес; сами UDP-пакеты и ключи сессии туда не включаются. DEBUG-логирование записывает содержимое UDP-пакетов. Перед отправкой логов проверьте их.
+
+## Источник для реализации протокола
+
+Источник при реализации протокола: [broadlink_ac_mqtt](https://github.com/liaan/broadlink_ac_mqtt) (архивный репозиторий).
 
 ## Ограничения
 

@@ -45,7 +45,6 @@ class BroadlinkAcClimate(CoordinatorEntity[BroadlinkAcCoordinator], ClimateEntit
     _attr_swing_modes = VERTICAL_SWING_MODES
     _attr_swing_horizontal_modes = HORIZONTAL_SWING_MODES
     _attr_target_temperature_step = 0.5
-    _attr_precision = 0.5
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.SWING_MODE

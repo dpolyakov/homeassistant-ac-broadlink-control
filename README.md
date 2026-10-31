@@ -25,9 +25,9 @@ The local protocol provides one ambient-temperature value. The climate entity an
 
 ### HACS
 
-HACS requires an `issue_tracker` key in the integration’s `manifest.json` ([HACS integration requirements](https://hacs.xyz/docs/publish/integration/)). This repository’s manifest does not contain that key yet; add it before registering the repository in HACS. Until then, use the manual method below.
+The root `hacs.json` sets the name shown in HACS. The integration’s `manifest.json` defines the required `issue_tracker` field, and the repository includes its brand icon at `custom_components/broadlink_ac/brand/icon.png` ([HACS general requirements](https://hacs.xyz/docs/publish/start/), [integration requirements](https://hacs.xyz/docs/publish/integration/)).
 
-Once the repository meets HACS requirements:
+To install this integration from the repository through HACS:
 
 1. In HACS, open the menu in the top-right corner and select **Custom repositories**.
 2. Add [`https://github.com/dpolyakov/homeassistant-ac-broadlink-control`](https://github.com/dpolyakov/homeassistant-ac-broadlink-control) and choose **Integration** as the category.
@@ -72,6 +72,10 @@ Feature support depends on the device model and firmware. Check the device manua
 ## Diagnostics and logs
 
 Home Assistant diagnostics redact the device’s host and MAC address and do not include raw packets or session keys. DEBUG logging includes raw UDP packet data; review logs before sharing them.
+
+## Protocol implementation reference
+
+Reference for the protocol implementation: [broadlink_ac_mqtt](https://github.com/liaan/broadlink_ac_mqtt) (archived repository).
 
 ## Scope
 
