@@ -1,0 +1,63 @@
+# Self-assessment of applicable Bronze rules for a custom integration.
+# https://contributors.home-assistant.io/core/quality-scale/
+rules:
+  action-setup:
+    status: exempt
+    comment: No integration-specific actions; standard climate and switch actions only.
+  appropriate-polling:
+    status: done
+    comment: State polling is fixed at 10 seconds; ambient polling at 180 seconds. README explains custom polling through HA automations.
+  brands:
+    status: done
+    comment: Custom integration branding is bundled in brand/icon.png, following the custom brand rules rather than the Core brands repository.
+  common-modules:
+    status: done
+    comment: Shared coordinator and entity behavior live in coordinator.py and entity.py.
+  config-flow:
+    status: done
+    comment: UI setup and options have field descriptions; connection data and user options are stored separately for new entries.
+  config-flow-test-coverage:
+    status: done
+    comment: scripts/check enforces 100% line and branch coverage, including recovery from errors and options flows.
+  dependency-transparency:
+    status: exempt
+    comment: No additional package requirements; protocol code is included in this public MIT-licensed repository.
+  docs-actions:
+    status: exempt
+    comment: No integration-specific actions.
+  docs-conditions:
+    status: exempt
+    comment: No integration-specific conditions.
+  docs-high-level-description:
+    status: done
+    comment: Both READMEs describe AUX compatibility, local control, and link to the manufacturer.
+  docs-installation-instructions:
+    status: done
+    comment: Both READMEs explain HACS/manual installation, network requirements, discovery, and manual setup.
+  docs-removal-instructions:
+    status: done
+    comment: Both READMEs explain removal, unchanged device state, and optional cleanup of cached local sessions.
+  docs-triggers:
+    status: exempt
+    comment: No integration-specific triggers.
+  entity-event-setup:
+    status: done
+    comment: CoordinatorEntity manages subscriptions on add/remove; HA lifecycle tests verify listener cleanup.
+  entity-unique-id:
+    status: done
+    comment: Every entity has a MAC-based stable unique ID; HA tests verify registry identity across platforms.
+  has-entity-name:
+    status: done
+    comment: The shared entity sets has_entity_name; the main climate entity uses name None.
+  runtime-data:
+    status: done
+    comment: BroadlinkAcConfigEntry types the coordinator stored in entry.runtime_data.
+  test-before-configure:
+    status: done
+    comment: Both setup paths authenticate and read device state before creating the entry.
+  test-before-setup:
+    status: done
+    comment: async_config_entry_first_refresh completes before platform setup; failure creates no entities.
+  unique-config-entry:
+    status: done
+    comment: Normalized MAC addresses are unique IDs; both setup paths reject duplicates before device I/O.

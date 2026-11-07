@@ -2,7 +2,7 @@
 
 [English](README.md) | [Русский](README.ru.md)
 
-A custom Home Assistant integration for controlling compatible AUX air conditioners over the local network. It communicates directly with the air conditioner’s Broadlink-compatible Wi-Fi module over IPv4 UDP. The integration does not use MQTT, an external bridge, or AUX Cloud.
+A custom Home Assistant integration for controlling compatible [AUX](https://www.auxair.com/) air conditioners over the local network. It communicates directly with the air conditioner’s Broadlink-compatible Wi-Fi module over IPv4 UDP. The integration does not use MQTT, an external bridge, or AUX Cloud.
 
 ## Compatibility
 
@@ -45,15 +45,31 @@ See the [HACS custom repository guide](https://hacs.xyz/docs/faq/custom_reposito
 In Home Assistant, open **Settings → Devices & services → Add integration** and search for **Broadlink AUX Air Conditioner**. The setup flow offers two methods:
 
 - **Find devices** sends a local UDP broadcast scan for three seconds. Discovery requires the network to pass the broadcast packets.
-- **Enter device manually** asks for the device’s IPv4 address and MAC address. The UDP port defaults to `80`; a device name is optional.
+- **Enter device manually** asks for the device’s IPv4 address and MAC address. The UDP port defaults to `80`.
 
 If discovery finds no device, use manual setup. The selected device must still be reachable over the local network.
 
 ## Options
 
-After setup, the integration’s options let you change the device name, set the polling interval from 10 to 300 seconds (10 seconds by default), invert display-switch behavior, and select optional switches.
+After setup, the integration’s options let you invert display-switch behavior and select optional switches. To rename a device, open its device page in Home Assistant and edit its name.
 
 Optional switches are disabled for a newly added device. Enable only the functions listed in the device’s manual. Selecting a switch does not verify that the physical device supports it.
+
+## Data updates
+
+The integration polls device state every 10 seconds, so changes made with the remote become visible without excessive UDP traffic. Ambient temperature is requested every 180 seconds and when the I-feel state changes. Commands trigger a state readback. Home Assistant can [define a custom polling interval](https://www.home-assistant.io/common-tasks/general/#defining-a-custom-polling-interval) through an automation after disabling automatic polling in the integration's system options.
+
+## Actions, triggers, and conditions
+
+The integration adds no custom actions, triggers, or conditions. Use Home Assistant's standard climate and switch actions and entity state triggers/conditions in automations.
+
+## Removal
+
+1. Open **Settings → Devices & services → Broadlink AUX Air Conditioner**.
+2. Open the menu for the device's integration entry and select **Delete**. Repeat for other configured air conditioners if needed.
+3. To remove the integration files, uninstall it in HACS, or delete `custom_components/broadlink_ac` for a manual installation, then restart Home Assistant.
+
+Removal stops local polling. It does not switch the air conditioner off, reset its settings, or unpair it from AC Freedom. No cloud authorization was created by this integration. Cached local session data may remain in `<config>/.storage/broadlink_ac.<entry_id>.json`; after deleting the entry, you may remove that file with Home Assistant stopped if you want to clear the cached session.
 
 ## Troubleshooting
 
@@ -81,3 +97,18 @@ Reference for the protocol implementation: [broadlink_ac_mqtt](https://github.co
 
 The integration controls devices locally over IPv4 UDP. MQTT, external bridge software, AUX Cloud, IPv6, NAT traversal, and VPN transport are not supported.
 
+
+## Development and quality checks
+
+Use Python 3.14 with Home Assistant 2026.9 for the test environment:
+
+```sh
+python3.14 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+./scripts/check
+```
+
+The check runs the protocol tests and Home Assistant flow/lifecycle tests, and requires 100% line and branch coverage of `config_flow.py`. CI also runs HACS and hassfest without ignored checks. The HA tests mock device I/O; they do not demonstrate behavior on physical hardware.
+
+[`quality_scale.yaml`](custom_components/broadlink_ac/quality_scale.yaml) records the applicable Bronze requirements and exemptions. This is a self-assessment for a custom integration, not an official Bronze tier awarded by Home Assistant. See the [quality scale](https://contributors.home-assistant.io/core/quality-scale/tiers/) and [custom brand asset rules](https://contributors.home-assistant.io/core/integrations/brands/#brand-images-for-custom-integrations).

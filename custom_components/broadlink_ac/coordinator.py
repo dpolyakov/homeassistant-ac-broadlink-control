@@ -10,19 +10,16 @@ from dataclasses import replace
 from datetime import timedelta
 from typing import Any, Awaitable, Callable
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from . import BroadlinkAcConfigEntry
 from .const import (
     AMBIENT_INTERVAL,
     CONF_INVERT_DISPLAY,
     CONF_NAME,
-    CONF_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
-    MAX_POLL_INTERVAL,
-    MIN_POLL_INTERVAL,
 )
 from .protocol.device import (
     AcDevice,
@@ -41,14 +38,15 @@ _LOGGER = logging.getLogger(__name__)
 class BroadlinkAcCoordinator(DataUpdateCoordinator[AcState]):
     """Own the confirmed state and one device command queue."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, device: AcDevice, store: AcStore) -> None:
+    config_entry: BroadlinkAcConfigEntry
+
+    def __init__(self, hass: HomeAssistant, entry: BroadlinkAcConfigEntry, device: AcDevice, store: AcStore) -> None:
         self.entry = entry
         self.device = device
         self.store = store
-        self.name = entry.options.get(CONF_NAME) or entry.data.get(CONF_NAME) or device.mac
+        self.device_name = entry.options.get(CONF_NAME) or entry.data.get(CONF_NAME) or entry.title
         self.invert_display = bool(entry.options.get(CONF_INVERT_DISPLAY, False))
-        poll_interval = int(entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL))
-        self.poll_interval = min(MAX_POLL_INTERVAL, max(MIN_POLL_INTERVAL, poll_interval))
+        self.poll_interval = DEFAULT_POLL_INTERVAL
         self._base_poll_interval = self.poll_interval
         self._poll_backoff = 0
         self.last_packet: float | None = None
@@ -63,6 +61,7 @@ class BroadlinkAcCoordinator(DataUpdateCoordinator[AcState]):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=f"{DOMAIN} {device.mac}",
             update_interval=timedelta(seconds=self.poll_interval),
         )
@@ -204,6 +203,7 @@ class BroadlinkAcCoordinator(DataUpdateCoordinator[AcState]):
 
     async def async_shutdown(self) -> None:
         """Cancel pending work and close the device socket."""
+        await super().async_shutdown()
         self._shutdown = True
         if self._debounce_task is not None:
             task = self._debounce_task

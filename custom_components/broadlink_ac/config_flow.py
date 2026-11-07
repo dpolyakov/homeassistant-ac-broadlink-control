@@ -8,19 +8,16 @@ import socket
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import callback
 
+from . import BroadlinkAcConfigEntry
 from .const import (
     CONF_ENABLED_SWITCHES,
     CONF_INVERT_DISPLAY,
     CONF_MAC,
-    CONF_POLL_INTERVAL,
     DEFAULT_PORT,
-    DEFAULT_POLL_INTERVAL,
     DOMAIN,
-    MAX_POLL_INTERVAL,
-    MIN_POLL_INTERVAL,
     SWITCH_KEYS,
 )
 from .protocol.device import (
@@ -60,8 +57,9 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             result = await self._try_device(user_input)
             if result is None:
                 return self.async_create_entry(
-                    title=user_input.get(CONF_NAME) or user_input[CONF_MAC],
-                    data={**user_input, CONF_ENABLED_SWITCHES: []},
+                    title=user_input[CONF_MAC],
+                    data=user_input,
+                    options={CONF_ENABLED_SWITCHES: []},
                 )
             errors["base"] = result
         schema = vol.Schema(
@@ -69,40 +67,39 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_MAC): str,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
-                vol.Optional(CONF_NAME, default=""): str,
             }
         )
         return self.async_show_form(step_id="manual", data_schema=schema, errors=errors)
 
     async def async_step_discovery(self, user_input=None):
         """Discover compatible devices explicitly."""
-        if not hasattr(self, "_discovered"):
+        if not getattr(self, "_discovered", None):
             try:
                 self._discovered = await async_discover(await asyncio.to_thread(_local_ip))
             except OSError:
                 self._discovered = []
-        if user_input is not None:
-            selected = next(item for item in self._discovered if item.mac == user_input["device"])
-            data = {
-                CONF_HOST: selected.host,
-                CONF_MAC: selected.mac,
-                CONF_PORT: DEFAULT_PORT,
-                CONF_NAME: user_input.get(CONF_NAME) or selected.name,
-                CONF_ENABLED_SWITCHES: [],
-            }
-            error = await self._try_device(data)
-            if error is None:
-                return self.async_create_entry(title=data[CONF_NAME], data=data)
-            return self.async_show_form(
-                step_id="discovery",
-                data_schema=self._discovery_schema(),
-                errors={"base": error},
-            )
         if not self._discovered:
             return self.async_show_form(
                 step_id="discovery",
                 data_schema=vol.Schema({}),
                 errors={"base": "no_devices_found"},
+            )
+        if user_input and "device" in user_input:
+            selected = next(item for item in self._discovered if item.mac == user_input["device"])
+            data = {
+                CONF_HOST: selected.host,
+                CONF_MAC: selected.mac,
+                CONF_PORT: DEFAULT_PORT,
+            }
+            error = await self._try_device(data)
+            if error is None:
+                return self.async_create_entry(
+                    title=selected.name, data=data, options={CONF_ENABLED_SWITCHES: []}
+                )
+            return self.async_show_form(
+                step_id="discovery",
+                data_schema=self._discovery_schema(),
+                errors={"base": error},
             )
         return self.async_show_form(step_id="discovery", data_schema=self._discovery_schema())
 
@@ -111,7 +108,6 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return vol.Schema(
             {
                 vol.Required("device"): vol.In({item.mac: item.name for item in self._discovered}),
-                vol.Optional(CONF_NAME, default=""): str,
             }
         )
 
@@ -148,7 +144,7 @@ class BroadlinkAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: BroadlinkAcConfigEntry):
         """Return the options flow."""
         return BroadlinkAcOptionsFlow()
 
@@ -173,11 +169,6 @@ class BroadlinkAcOptionsFlow(config_entries.OptionsFlowWithReload):
         )
         schema = vol.Schema(
             {
-                vol.Optional(CONF_NAME, default=self.config_entry.options.get(CONF_NAME, self.config_entry.data.get(CONF_NAME, ""))): str,
-                vol.Required(
-                    CONF_POLL_INTERVAL,
-                    default=self.config_entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
-                ): vol.All(vol.Coerce(int), vol.Range(min=MIN_POLL_INTERVAL, max=MAX_POLL_INTERVAL)),
                 vol.Required(CONF_INVERT_DISPLAY, default=self.config_entry.options.get(CONF_INVERT_DISPLAY, False)): bool,
                 **{
                     vol.Optional(f"feature_{key}", default=key in enabled): bool

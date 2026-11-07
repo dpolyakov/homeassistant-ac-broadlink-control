@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import BroadlinkAcConfigEntry
 from .const import CONF_ENABLED_SWITCHES, DOMAIN, SWITCH_KEYS
 from .coordinator import BroadlinkAcCoordinator
+from .entity import BroadlinkAcEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: BroadlinkAcConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create only the switches selected for this device."""
@@ -43,31 +43,14 @@ async def async_setup_entry(
     )
 
 
-class BroadlinkAcSwitch(CoordinatorEntity[BroadlinkAcCoordinator], SwitchEntity):
+class BroadlinkAcSwitch(BroadlinkAcEntity, SwitchEntity):
     """One boolean protocol state field."""
-
-    _attr_has_entity_name = True
 
     def __init__(self, coordinator: BroadlinkAcCoordinator, key: str, name: str) -> None:
         super().__init__(coordinator)
         self.key = key
         self._attr_name = name
         self._attr_unique_id = f"{coordinator.device.mac}_{key}"
-
-    @property
-    def device_info(self):
-        from homeassistant.helpers.entity import DeviceInfo
-
-        return DeviceInfo(
-            identifiers={("broadlink_ac", self.coordinator.device.mac)},
-            name=self.coordinator.name,
-            manufacturer="AUX / Broadlink",
-            model="AC Freedom / 0x4E2a",
-        )
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success
 
     @property
     def is_on(self) -> bool | None:
