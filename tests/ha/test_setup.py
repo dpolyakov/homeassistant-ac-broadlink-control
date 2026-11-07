@@ -1,6 +1,10 @@
 """Verify first refresh, entity identity, and coordinator subscriptions in HA."""
 
 from datetime import timedelta
+import time
+from unittest.mock import patch
+
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -9,6 +13,14 @@ from custom_components.broadlink_ac.const import DOMAIN
 from custom_components.broadlink_ac.protocol.device import UnsupportedDeviceError
 
 MAC = "34:ea:34:5b:0f:d4"
+
+
+@pytest.fixture(autouse=True)
+def coordinator_clock():
+    """Make ambient polling independent of the CI runner's uptime."""
+    with patch("custom_components.broadlink_ac.coordinator.time", wraps=time) as clock:
+        clock.monotonic.return_value = 1000.0
+        yield clock
 
 
 def make_entry(hass, *, switches=()):
