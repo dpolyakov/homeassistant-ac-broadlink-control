@@ -6,12 +6,11 @@ from typing import Any
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import ClimateEntityFeature, HVACMode
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import BroadlinkAcConfigEntry
 from .const import (
     FAN_MODES,
     FAN_MODE_CODES,
@@ -25,21 +24,21 @@ from .const import (
     VERTICAL_SWING_TO_CODE,
 )
 from .coordinator import BroadlinkAcCoordinator
+from .entity import BroadlinkAcEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: BroadlinkAcConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create the climate entity."""
     async_add_entities([BroadlinkAcClimate(entry.runtime_data)])
 
 
-class BroadlinkAcClimate(CoordinatorEntity[BroadlinkAcCoordinator], ClimateEntity):
+class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
     """Native climate representation of one device."""
 
-    _attr_has_entity_name = True
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.AUTO, HVACMode.COOL, HVACMode.DRY, HVACMode.HEAT, HVACMode.FAN_ONLY]
     _attr_fan_modes = FAN_MODES
     _attr_swing_modes = VERTICAL_SWING_MODES
@@ -54,27 +53,11 @@ class BroadlinkAcClimate(CoordinatorEntity[BroadlinkAcCoordinator], ClimateEntit
     def __init__(self, coordinator: BroadlinkAcCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_climate"
-        self._attr_name = "Climate"
+        self._attr_name = None
         self._last_hvac_mode = HVACMode.AUTO
         self._last_fan_mode = "auto"
         self._last_vertical_swing = "off"
         self._last_horizontal_swing = HORIZONTAL_SWING_MODES[0]
-
-    @property
-    def device_info(self):
-        """Return device registry information."""
-        from homeassistant.helpers.entity import DeviceInfo
-
-        return DeviceInfo(
-            identifiers={("broadlink_ac", self.coordinator.device.mac)},
-            name=self.coordinator.name,
-            manufacturer="AUX / Broadlink",
-            model="AC Freedom / 0x4E2a",
-        )
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success
 
     @property
     def _state(self):

@@ -235,7 +235,7 @@ The accepted target range is 16–32 °C in 0.5 °C increments. **Inferred from 
 
 ## Lifecycle and acceptance
 
-- Poll state every 10 seconds by default; allow 10–300 seconds in options.
+- Poll state every 10 seconds; the integration chooses the interval.
 - Poll ambient every 180 seconds and immediately when the i-feel state changes.
 - Mark unavailable after three consecutive failed operations and available after one success.
 - Use a 300 ms command debounce, 500 ms minimum packet spacing, 500 ms post-SET delay, and bounded retry/backoff.

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from . import BroadlinkAcConfigEntry
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict:
+
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: BroadlinkAcConfigEntry) -> dict:
     """Return redacted diagnostics without raw packets or session keys."""
     coordinator = entry.runtime_data
     state = coordinator.data

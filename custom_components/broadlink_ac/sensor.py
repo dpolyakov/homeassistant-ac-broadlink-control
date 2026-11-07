@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 
+from . import BroadlinkAcConfigEntry
 from .coordinator import BroadlinkAcCoordinator
+from .entity import BroadlinkAcEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: BroadlinkAcConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Create diagnostic sensors."""
@@ -30,11 +30,10 @@ async def async_setup_entry(
     )
 
 
-class BroadlinkAcBuiltInTemperatureSensor(CoordinatorEntity[BroadlinkAcCoordinator], SensorEntity):
+class BroadlinkAcBuiltInTemperatureSensor(BroadlinkAcEntity, SensorEntity):
     """Temperature reported by the device ambient sensor."""
 
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_has_entity_name = True
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -44,49 +43,18 @@ class BroadlinkAcBuiltInTemperatureSensor(CoordinatorEntity[BroadlinkAcCoordinat
         self._attr_name = "Built-in temperature"
 
     @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success
-
-    @property
     def native_value(self) -> float | None:
         state = self.coordinator.data
         return None if state is None else state.ambient_temperature
 
-    @property
-    def device_info(self):
-        from homeassistant.helpers.entity import DeviceInfo
 
-        return DeviceInfo(
-            identifiers={("broadlink_ac", self.coordinator.device.mac)},
-            name=self.coordinator.name,
-            manufacturer="AUX / Broadlink",
-            model="AC Freedom / 0x4E2a",
-        )
-
-
-class _DiagnosticSensor(CoordinatorEntity[BroadlinkAcCoordinator], SensorEntity):
+class _DiagnosticSensor(BroadlinkAcEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_has_entity_name = True
 
     def __init__(self, coordinator: BroadlinkAcCoordinator, key: str, name: str) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.device.mac}_{key}"
         self._attr_name = name
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success
-
-    @property
-    def device_info(self):
-        from homeassistant.helpers.entity import DeviceInfo
-
-        return DeviceInfo(
-            identifiers={("broadlink_ac", self.coordinator.device.mac)},
-            name=self.coordinator.name,
-            manufacturer="AUX / Broadlink",
-            model="AC Freedom / 0x4E2a",
-        )
 
 
 class BroadlinkAcLastPacketSensor(_DiagnosticSensor):

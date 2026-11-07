@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+PYTHON="${PYTHON:-python3}"
+"$PYTHON" -m unittest discover -s tests -v
+"$PYTHON" -m coverage run --branch --source=custom_components.broadlink_ac.config_flow -m pytest -q tests/ha
+"$PYTHON" -m coverage report --fail-under=100

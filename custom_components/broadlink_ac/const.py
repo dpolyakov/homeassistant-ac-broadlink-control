@@ -11,7 +11,6 @@ CONF_HOST = "host"
 CONF_MAC = "mac"
 CONF_PORT = "port"
 CONF_NAME = "name"
-CONF_POLL_INTERVAL = "poll_interval"
 CONF_INVERT_DISPLAY = "invert_display"
 CONF_ENABLED_SWITCHES = "enabled_switches"
 
@@ -19,8 +18,6 @@ SWITCH_KEYS = ("display", "health", "clean", "mildew")
 
 DEFAULT_PORT = 80
 DEFAULT_POLL_INTERVAL = 10
-MIN_POLL_INTERVAL = 10
-MAX_POLL_INTERVAL = 300
 AMBIENT_INTERVAL = 180
 
 HVAC_MODE_CODES = {
