@@ -1,8 +1,8 @@
 import asyncio
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from custom_components.broadlink_ac.protocol.device import AcDevice
+from custom_components.broadlink_ac.protocol.device import AcDevice, ProtocolError, _DatagramProtocol
 from custom_components.broadlink_ac.protocol.packet import (
     INITIAL_KEY,
     build_application_frame,
@@ -21,11 +21,13 @@ class FakeDeviceProtocol(asyncio.DatagramProtocol):
     def __init__(self) -> None:
         self.transport = None
         self.requests = []
+        self.packets = []
 
     def connection_made(self, transport) -> None:
         self.transport = transport
 
     def datagram_received(self, data, addr) -> None:
+        self.packets.append(data)
         request_key = INITIAL_KEY if data[0x26] == 0x65 else SESSION_KEY
         request = parse_packet(data, request_key)
         self.requests.append(request.command)
@@ -49,6 +51,7 @@ class FakeDeviceProtocol(asyncio.DatagramProtocol):
                 build_application_frame(bytes(body)),
                 SESSION_KEY,
             )
+        self.packets.append(response)
         self.transport.sendto(response, addr)
 
 
@@ -76,8 +79,8 @@ class DeviceTests(unittest.IsolatedAsyncioTestCase):
         device = AcDevice("127.0.0.1", MAC, port)
 
         try:
-            session = await device.authenticate()
             with self.assertLogs("custom_components.broadlink_ac.protocol.device", level="DEBUG") as logs:
+                session = await device.authenticate()
                 state = await device.read_state()
         finally:
             await device.close()
@@ -90,3 +93,36 @@ class DeviceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(state.vertical_swing_code, 6)
         self.assertEqual(server.requests, [0x65, 0x6A])
         self.assertTrue(any("STATE response" in message for message in logs.output))
+        output = "\n".join(logs.output)
+        for packet in server.packets:
+            self.assertNotIn(packet.hex(" "), output)
+            self.assertNotIn(packet.hex(), output)
+        for sensitive in (SESSION_KEY, DEVICE_ID, DEVICE_ID + SESSION_KEY):
+            self.assertNotIn(sensitive.hex(" "), output)
+            self.assertNotIn(sensitive.hex(), output)
+        for command in ("0x65", "0x6a"):
+            self.assertIn(f"command={command}", output)
+        self.assertIn("sequence=", output)
+        self.assertIn("length=", output)
+        self.assertNotIn("payload=", output)
+
+    async def test_malformed_response_logs_metadata_without_bytes(self) -> None:
+        device = AcDevice("192.0.2.10", MAC)
+        protocol = _DatagramProtocol()
+        response = b"bad packet containing " + SESSION_KEY
+        protocol.packets.put_nowait((response, (device.host, 80)))
+        device._transport = Mock()
+        with (
+            patch.object(device, "_ensure_socket", new=AsyncMock(return_value=protocol)),
+            patch.object(device, "_wait_rate_limit", new=AsyncMock()),
+            self.assertLogs("custom_components.broadlink_ac.protocol.device", level="DEBUG") as logs,
+        ):
+            with self.assertRaisesRegex(ProtocolError, "invalid Broadlink packet header"):
+                await device.authenticate()
+        output = "\n".join(logs.output)
+        self.assertIn(f"length={len(response)}", output)
+        self.assertIn("invalid Broadlink packet header", output)
+        self.assertNotIn(response.hex(" "), output)
+        self.assertNotIn(response.hex(), output)
+        self.assertNotIn(SESSION_KEY.hex(" "), output)
+        self.assertNotIn(SESSION_KEY.hex(), output)

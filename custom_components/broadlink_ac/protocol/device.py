@@ -145,7 +145,10 @@ class AcDevice:
             device_id = self.device_id or b"\0\0\0\0"
             packet = build_packet(command, sequence, self._mac_bytes, device_id, payload, key)
             assert self._transport is not None
-            _LOGGER.debug("UDP TX %s:%s %s", self.host, self.port, packet.hex(" "))
+            _LOGGER.debug(
+                "UDP TX %s:%s command=0x%02x sequence=%s length=%s",
+                self.host, self.port, command, sequence, len(packet),
+            )
             try:
                 self._transport.sendto(packet, (self.host, self.port))
             except OSError as err:
@@ -162,13 +165,18 @@ class AcDevice:
                     raise TransportError(f"no response from {self.host}") from err
                 if not response or addr[0] != self.host:
                     continue
-                _LOGGER.debug("UDP RX %s:%s %s", addr[0], addr[1], response.hex(" "))
                 try:
                     parsed = parse_packet(response, key)
                 except UnsupportedPacketError as err:
+                    _LOGGER.debug("UDP RX %s:%s length=%s rejected: %s", addr[0], addr[1], len(response), err)
                     raise UnsupportedDeviceError(str(err)) from err
                 except PacketError as err:
+                    _LOGGER.debug("UDP RX %s:%s length=%s rejected: %s", addr[0], addr[1], len(response), err)
                     raise ProtocolError(str(err)) from err
+                _LOGGER.debug(
+                    "UDP RX %s:%s command=0x%02x sequence=%s length=%s",
+                    addr[0], addr[1], parsed.command, parsed.sequence, len(response),
+                )
                 if parsed.error:
                     raise AuthenticationError(f"device returned error 0x{parsed.error:04x}")
                 return parsed
@@ -196,13 +204,12 @@ class AcDevice:
             state = parse_state_response(parsed.payload)
             _LOGGER.debug(
                 "STATE response ifeel=%s fahrenheit=%s power=%s mode=%s "
-                "target_temperature=%s payload=%s",
+                "target_temperature=%s",
                 state.ifeel,
                 state.fahrenheit,
                 state.power,
                 state.mode_code,
                 state.target_temperature,
-                parsed.payload.hex(" "),
             )
             return state
         except PacketError as err:
@@ -215,9 +222,8 @@ class AcDevice:
             validate_application_frame(parsed.payload)
             ambient = parse_ambient_response(parsed.payload)
             _LOGGER.debug(
-                "AMBIENT response temperature=%s payload=%s",
+                "AMBIENT response temperature=%s",
                 ambient,
-                parsed.payload.hex(" "),
             )
             return ambient
         except PacketError as err:
@@ -227,21 +233,19 @@ class AcDevice:
         """Send a complete device state."""
         frame = build_set_frame(state)
         _LOGGER.debug(
-            "SET request ifeel=%s fahrenheit=%s power=%s mode=%s target_temperature=%s frame=%s",
+            "SET request ifeel=%s fahrenheit=%s power=%s mode=%s target_temperature=%s",
             state.ifeel,
             state.fahrenheit,
             state.power,
             state.mode_code,
             state.target_temperature,
-            frame.hex(" "),
         )
         parsed = await self._session_request(frame)
         try:
             validate_application_frame(parsed.payload)
             _LOGGER.debug(
-                "SET response ifeel=%s payload=%s",
+                "SET response ifeel=%s",
                 state.ifeel,
-                parsed.payload.hex(" "),
             )
         except PacketError as err:
             raise ProtocolError(str(err)) from err
