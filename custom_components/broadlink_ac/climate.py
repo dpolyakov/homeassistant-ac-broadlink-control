@@ -14,6 +14,7 @@ from . import BroadlinkAcConfigEntry
 from .const import (
     FAN_MODES,
     FAN_MODE_CODES,
+    FAN_MODE_TO_CODE,
     HVAC_MODE_CODES,
     HVAC_MODE_TO_CODE,
     HORIZONTAL_SWING_CODES,
@@ -46,6 +47,9 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
     _attr_target_temperature_step = 0.5
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.FAN_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
         | ClimateEntityFeature.SWING_MODE
         | ClimateEntityFeature.SWING_HORIZONTAL_MODE
     )
@@ -145,6 +149,14 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
             mode_code=HVAC_MODE_TO_CODE[hvac_mode],
         )
 
+    async def async_turn_on(self) -> None:
+        """Turn on without changing the device's retained settings."""
+        await self.coordinator.async_request_state_change(power=True)
+
+    async def async_turn_off(self) -> None:
+        """Turn off without changing the device's retained settings."""
+        await self.coordinator.async_request_state_change(power=False)
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set target temperature."""
         if ATTR_TEMPERATURE not in kwargs:
@@ -159,8 +171,8 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
             changes = {"turbo": True, "mute": False}
         elif fan_mode == "mute":
             changes = {"turbo": False, "mute": True}
-        elif fan_mode in FAN_MODE_CODES:
-            changes = {"fan_speed_code": FAN_MODE_CODES[fan_mode], "turbo": False, "mute": False}
+        elif fan_mode in FAN_MODE_TO_CODE:
+            changes = {"fan_speed_code": FAN_MODE_TO_CODE[fan_mode], "turbo": False, "mute": False}
         else:
             raise ValueError(f"unsupported fan mode: {fan_mode}")
         await self.coordinator.async_request_state_change(**changes)

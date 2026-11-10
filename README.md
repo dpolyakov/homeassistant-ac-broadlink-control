@@ -87,7 +87,7 @@ Feature support depends on the device model and firmware. Check the device manua
 
 ## Diagnostics and logs
 
-Home Assistant diagnostics redact the device’s host and MAC address and do not include raw packets or session keys. DEBUG logging includes raw UDP packet data; review logs before sharing them.
+Home Assistant diagnostics redact the device’s host and MAC address and do not include raw packets or session keys. DEBUG logs include packet direction, command, sequence, length, and decoded state fields, but no raw packets, payloads, or session keys. Logs still contain the device’s IP address; review them before sharing.
 
 ## Protocol implementation reference
 
