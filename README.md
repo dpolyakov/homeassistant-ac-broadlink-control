@@ -6,6 +6,8 @@ A custom Home Assistant integration for controlling compatible [AUX](https://www
 
 ## Compatibility
 
+Version 2.0.0 requires Home Assistant 2026.11.0 or later.
+
 The integration supports devices that report Broadlink device type `0x4E2a` (`20010`). Compatibility depends on the device model and firmware, even when the device type matches. The device must be reachable from Home Assistant over local IPv4 UDP.
 
 ## Features
@@ -100,7 +102,7 @@ The integration controls devices locally over IPv4 UDP. MQTT, external bridge so
 
 ## Development and quality checks
 
-Use Python 3.14 with Home Assistant 2026.9 for the test environment:
+Use Python 3.14 with Home Assistant 2026.11 for the test environment:
 
 ```sh
 python3.14 -m venv .venv

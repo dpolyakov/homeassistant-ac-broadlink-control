@@ -1,3 +1,4 @@
 {
-  "name": "Broadlink AUX Air Conditioner"
+  "name": "Broadlink AUX Air Conditioner",
+  "homeassistant": "2026.11.0"
 }

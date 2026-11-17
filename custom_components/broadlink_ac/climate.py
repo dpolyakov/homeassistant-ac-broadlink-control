@@ -44,6 +44,9 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
     _attr_fan_modes = FAN_MODES
     _attr_swing_modes = VERTICAL_SWING_MODES
     _attr_swing_horizontal_modes = HORIZONTAL_SWING_MODES
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_min_temp = 16
+    _attr_max_temp = 32
     _attr_target_temperature_step = 0.5
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
@@ -68,28 +71,14 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
         return self.coordinator.data
 
     @property
-    def temperature_unit(self) -> str:
-        return self.hass.config.units.temperature_unit
-
-    @property
-    def min_temp(self) -> float:
-        return self._from_celsius(16)
-
-    @property
-    def max_temp(self) -> float:
-        return self._from_celsius(32)
-
-    @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         state = self._state
-        return None if state is None else self._from_celsius(state.target_temperature)
+        return None if state is None else state.target_temperature
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         state = self._state
-        if state is None or state.ambient_temperature is None:
-            return None
-        return self._from_celsius(state.ambient_temperature)
+        return None if state is None else state.ambient_temperature
 
     @property
     def hvac_mode(self) -> str | None:
@@ -161,8 +150,7 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
         """Set target temperature."""
         if ATTR_TEMPERATURE not in kwargs:
             return
-        celsius = self._to_celsius(float(kwargs[ATTR_TEMPERATURE]))
-        celsius = round(celsius * 2) / 2
+        celsius = round(float(kwargs[ATTR_TEMPERATURE]) * 2) / 2
         await self.coordinator.async_request_state_change(target_temperature=celsius)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
@@ -190,13 +178,3 @@ class BroadlinkAcClimate(BroadlinkAcEntity, ClimateEntity):
         await self.coordinator.async_request_state_change(
             horizontal_swing_code=HORIZONTAL_SWING_TO_CODE[swing_horizontal_mode]
         )
-
-    def _from_celsius(self, value: float) -> float:
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-            return value * 9 / 5 + 32
-        return value
-
-    def _to_celsius(self, value: float) -> float:
-        if self.temperature_unit == UnitOfTemperature.FAHRENHEIT:
-            return (value - 32) * 5 / 9
-        return value

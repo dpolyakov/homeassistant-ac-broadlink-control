@@ -6,7 +6,8 @@ import pytest
 from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.broadlink_ac.const import DOMAIN
 
@@ -105,3 +106,27 @@ async def test_power_preserves_settings(hass, device, climate, power):
 
     device.apply_state.assert_awaited_once_with(replace(previous, power=power))
     assert hass.states.get(entity_id).state == ("cool" if power else "off")
+
+
+async def test_fahrenheit_temperature(hass, device, climate):
+    coordinator, entity_id = climate
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    previous = replace(coordinator.data, ambient_temperature=24, target_temperature=22)
+    coordinator.async_set_updated_data(previous)
+    await hass.async_block_till_done()
+
+    attributes = hass.states.get(entity_id).attributes
+    assert attributes["current_temperature"] == 75
+    assert attributes["temperature"] == 72
+    assert attributes["min_temp"] == 61
+    assert attributes["max_temp"] == 90
+
+    await hass.services.async_call(
+        "climate",
+        "set_temperature",
+        {"entity_id": entity_id, "temperature": 77},
+        blocking=True,
+    )
+
+    device.apply_state.assert_awaited_once_with(replace(previous, target_temperature=25))
+    assert hass.states.get(entity_id).attributes["temperature"] == 77

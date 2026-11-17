@@ -12,14 +12,11 @@ DOMAIN = "broadlink_ac"
 MAC = "34:ea:34:5b:0f:d4"
 
 
-@pytest.fixture(autouse=True)
-def custom_integration(enable_custom_integrations):
-    """Allow the integration to load in a real Home Assistant instance."""
-
-
 @pytest.fixture
 def hass_config_dir(hass_tmp_config_dir):
-    (Path(hass_tmp_config_dir) / "custom_components" / DOMAIN).symlink_to(
+    custom_components = Path(hass_tmp_config_dir) / "custom_components"
+    custom_components.mkdir(exist_ok=True)
+    (custom_components / DOMAIN).symlink_to(
         Path(__file__).parents[2] / "custom_components" / DOMAIN,
         target_is_directory=True,
     )
