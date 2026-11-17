@@ -27,9 +27,13 @@ The local protocol provides one ambient-temperature value. The climate entity an
 
 ### HACS
 
-The root `hacs.json` sets the name shown in HACS. The integration’s `manifest.json` defines the required `issue_tracker` field, and the repository includes its brand icon at `custom_components/broadlink_ac/brand/icon.png` ([HACS general requirements](https://hacs.xyz/docs/publish/start/), [integration requirements](https://hacs.xyz/docs/publish/integration/)).
+1. Open HACS and search for **Broadlink AUX Air Conditioner**.
+2. Open the integration and select **Download**.
+3. Restart Home Assistant.
 
-To install this integration from the repository through HACS:
+#### Custom repository fallback
+
+If the integration doesn't appear in HACS search, add it as a custom repository:
 
 1. In HACS, open the menu in the top-right corner and select **Custom repositories**.
 2. Add [`https://github.com/dpolyakov/homeassistant-ac-broadlink-control`](https://github.com/dpolyakov/homeassistant-ac-broadlink-control) and choose **Integration** as the category.

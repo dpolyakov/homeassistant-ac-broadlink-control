@@ -27,9 +27,13 @@
 
 ### HACS
 
-В корневом `hacs.json` задано имя интеграции для HACS. В `manifest.json` указано обязательное поле `issue_tracker`, а иконка находится в `custom_components/broadlink_ac/brand/icon.png` ([общие требования HACS](https://hacs.xyz/docs/publish/start/), [требования к интеграциям](https://hacs.xyz/docs/publish/integration/)).
+1. Откройте HACS и найдите **Broadlink AUX Air Conditioner** через поиск.
+2. Откройте интеграцию и нажмите **Download** (Скачать).
+3. Перезапустите Home Assistant.
 
-Чтобы установить интеграцию из этого репозитория через HACS:
+#### Установка через пользовательский репозиторий
+
+Если интеграция не появилась в поиске HACS, добавьте её как пользовательский репозиторий:
 
 1. В HACS откройте меню в правом верхнем углу и выберите **Custom repositories**.
 2. Добавьте [`https://github.com/dpolyakov/homeassistant-ac-broadlink-control`](https://github.com/dpolyakov/homeassistant-ac-broadlink-control) и выберите категорию **Integration**.
